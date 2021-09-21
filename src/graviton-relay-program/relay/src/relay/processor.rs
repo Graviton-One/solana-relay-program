@@ -82,7 +82,6 @@ impl RelayProcessor {
         let mut relay_contract_info =
             RelayContract::unpack(&relay_contract_account.data.borrow()[0..RelayContract::LEN])?;
 
-
         let token_program_id = next_account_info(account_info_iter)?;
 
         if *token_program_id.key != relay_contract_info.token_address {

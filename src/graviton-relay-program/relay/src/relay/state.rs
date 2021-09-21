@@ -26,8 +26,24 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use gravity_misc::ports::error::PortError;
 
 
-pub type WrapRequest = GenericRequest<Pubkey, ForeignAddress>;
+// pub type WrapRequest = GenericRequest<Pubkey, ForeignAddress>;
 
+/**
+ *  bytes32 topic0 = bytesToBytes32(impactData, 40); // [ 40: 72]
+    bytes memory token = impactData[84:104]; // [ 72:104][12:32]
+    bytes memory sender = impactData[116:136]; // [104:136][12:32]
+    bytes memory receiver = impactData[148:168]; // [136:168][12:32]
+    uint256 amount = deserializeUint(impactData, 168, 32); // [168:200]
+ */
+
+pub struct WrapRequest {
+    pub chain: [u8; 32],
+    pub topic0: [u8; 40],
+    pub token_mint: [u8; 32],
+    pub origin_address: Pubkey,
+    pub destination_address: ForeignAddress,
+    pub amount: u64,
+}
 
 #[repr(C)]
 #[derive(BorshSerialize, BorshDeserialize, PartialEq, Default, Debug, Clone)]
@@ -67,7 +83,7 @@ impl TokenMintConstrained<PortError> for RelayContract {
 }
 
 impl PartialStorage for RelayContract {
-    const DATA_RANGE: std::ops::Range<usize> = 0..20000;
+    const DATA_RANGE: std::ops::Range<usize> = 0..2000;
 }
 
 impl Sealed for RelayContract {} 
