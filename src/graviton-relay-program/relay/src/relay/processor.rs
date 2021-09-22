@@ -66,6 +66,7 @@ impl RelayProcessor {
     fn process_create_transfer_unwrap_request(
         accounts: &[AccountInfo],
         request_id: &[u8; 16],
+        dest_chain: String,
         ui_amount: f64,
         foreign_receiver: &ForeignAddress,
         _program_id: &Pubkey,
@@ -76,6 +77,12 @@ impl RelayProcessor {
         if !initializer.is_signer {
             return Err(ProgramError::MissingRequiredSignature);
         }
+
+        // user data account
+        let user_event_data_account = next_account_info(account_info_iter)?;
+
+        let mut user_event_data_account_info =
+            RelayContract::unpack(&user_event_data_account.data.borrow()[0..RelayContract::LEN])?;
 
         let relay_contract_account = next_account_info(account_info_iter)?;
 
@@ -123,6 +130,17 @@ impl RelayProcessor {
 
         msg!("saving request info");
         relay_contract_info.create_transfer_wrap_request(request_id, amount, token_holder.key, foreign_receiver)?;
+
+        user_event_data_account.destination_chain = chain;
+        user_event_data_account.token_mint = token_mint_info.pubkey;
+        user_event_data_account.origin_address = initializer.pubkey; 
+        user_event_data_account.destination_address = foreign_receiver; 
+        user_event_data_account.amount = amount; 
+        
+        RelayContract::pack(
+            user_event_data_account_info,
+            &mut user_event_data_account.try_borrow_mut_data()?[0..WrapRequest::LEN],
+        )?;
 
         RelayContract::pack(
             relay_contract_info,

@@ -37,13 +37,39 @@ use gravity_misc::ports::error::PortError;
  */
 
 pub struct WrapRequest {
-    pub chain: [u8; 32],
-    pub topic0: [u8; 40],
     pub token_mint: [u8; 32],
     pub origin_address: Pubkey,
     pub destination_address: ForeignAddress,
+    pub destination_chain: [u8;3],
     pub amount: u64,
 }
+
+macro_rules! pack {
+    ($struct_name: ident, len: $len: expr) => {
+        impl Pack for $struct_name {
+            const LEN: usize = $len;
+
+            fn unpack_from_slice(src: &[u8]) -> Result<Self, ProgramError> {
+                let mut mut_src: &[u8] = src;
+                Self::deserialize(&mut mut_src).map_err(|err| {
+                    msg!(
+                        "Error: failed to deserialize RelayContract instruction: {}",
+                        err
+                    );
+                    ProgramError::InvalidInstructionData
+                })
+            }
+
+            fn pack_into_slice(&self, dst: &mut [u8]) {
+                let data = self.try_to_vec().unwrap();
+                dst[..data.len()].copy_from_slice(&data);
+            }
+        }
+    };
+}
+
+pack!(WrapRequest,len: 1000);
+
 
 #[repr(C)]
 #[derive(BorshSerialize, BorshDeserialize, PartialEq, Default, Debug, Clone)]
@@ -61,6 +87,8 @@ pub struct RelayContract {
 
     pub requests_queue: RequestsQueue<[u8; 16]>,
 }
+
+pack!(RelayContract, len: 2000);
 
 impl RequestCountConstrained for RelayContract {
     const MAX_IDLE_REQUESTS_COUNT: usize = 100;
@@ -94,20 +122,6 @@ impl IsInitialized for RelayContract {
     }
 }
 
-
-impl Pack for RelayContract {
-    const LEN: usize = 20000;
-
-    fn unpack_from_slice(src: &[u8]) -> Result<Self, ProgramError> {
-        let mut mut_src: &[u8] = src;
-        Self::deserialize(&mut mut_src).map_err(|err| {
-            msg!(
-                "Error: failed to deserialize RelayContract instruction: {}",
-                err
-            );
-            ProgramError::InvalidInstructionData
-        })
-    }
 
     fn pack_into_slice(&self, dst: &mut [u8]) {
         let data = self.try_to_vec().unwrap();
