@@ -175,30 +175,9 @@ impl RelayContract {
 
         let command_char = std::str::from_utf8(action).unwrap();
 
-        match command_char {
-            PortOperationIdentifier::UNLOCK => {
-                let port_operation = Self::unpack_byte_array(byte_data)?;
-                let swap_status = self.swap_status.get(port_operation.swap_id);
+        let amount = byte_data[200..232];
+        let receiver = byte_data[328..360];
 
-                if swap_status.is_some() {
-                    return Err(PortError::InvalidRequestStatus.into());
-                }
-
-                msg!("input_pubkey.to_bytes(): {:?}", input_pubkey.to_bytes());
-                msg!("port_operation.receiver: {:?}", *port_operation.receiver);
-
-                if input_pubkey.to_bytes() != *port_operation.receiver {
-                    return Err(PortError::ErrorOnReceiverUnpack.into());
-                }
-
-                *input_amount = port_operation.amount_to_u64(token_mint_info.decimals);
-
-                self.swap_status.insert(*port_operation.swap_id, RequestStatus::Success);
-            },
-            _ => return Err(PortError::InvalidDataOnAttach.into())
-        }
-        
-        Ok(String::from(command_char))
     }
 
     pub fn create_transfer_wrap_request(&mut self, record_id: &[u8; 16], amount: u64, sender_data_account: &Pubkey, receiver: &ForeignAddress) -> Result<(), PortError>  {

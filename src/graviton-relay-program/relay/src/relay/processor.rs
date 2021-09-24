@@ -137,7 +137,7 @@ impl RelayProcessor {
         user_event_data_account.destination_address = foreign_receiver; 
         user_event_data_account.amount = amount; 
         
-        RelayContract::pack(
+        WrapRequest::pack(
             user_event_data_account_info,
             &mut user_event_data_account.try_borrow_mut_data()?[0..WrapRequest::LEN],
         )?;
